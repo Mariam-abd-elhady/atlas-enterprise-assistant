@@ -16,8 +16,8 @@ DOMAINS = ["hr", "it", "finance"]
 LANGUAGES = ["en", "ar", "bilingual"]
 
 # Models (team decision)
-LLM_MODEL = "gemini-2.0-flash"
-JUDGE_MODEL = "gemini-2.0-flash"
+LLM_MODEL = "gemini-3.8-flash"
+JUDGE_MODEL = "gemini-3.8-flash"
 EMBEDDING_MODEL = "intfloat/multilingual-e5-small"
 COLLECTION_NAME = "atlas_docs"
 EMBED_BATCH_SIZE = 16
