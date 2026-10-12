@@ -39,3 +39,4 @@ class AgentState(TypedDict, total=False):
     answer: str
     sources: list[str]
     step_count: int
+
