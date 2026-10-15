@@ -238,10 +238,8 @@ def route(
     best_domain, best_score = ranked[0]
     second_score = ranked[1][1]
 
+
     if best_score > 0:
-        
-    margin = best_score - second_score
-        # خفض الثقة إذا كان هناك مجال آخر قريب في درجة التطابق.
         margin = best_score - second_score
 
         confidence = min(
@@ -251,7 +249,10 @@ def route(
             + 0.10 * margin,
         )
 
-    
+        confidence = max(0.0, min(1.0, confidence))
+
+        return best_domain, confidence
+
         # إبقاء الثقة ضمن الحدود المسموح بها في إعدادات المشروع.
         confidence = max(0.0, min(1.0, confidence))
 
