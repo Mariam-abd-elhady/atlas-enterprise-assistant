@@ -108,8 +108,6 @@ async def main(message: cl.Message):
 
     header = f"**Domain:** {DOMAIN_LABELS.get(domain, domain or 'n/a')}\n\n"
     sources_md = ""
-    if sources:
-        sources_md = "\n\n**Sources:** " + ", ".join(sources)
     await cl.Message(
         content=header + state.get("answer", "") + sources_md, elements=elements
     ).send()
