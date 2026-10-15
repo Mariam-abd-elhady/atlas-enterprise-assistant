@@ -1,87 +1,121 @@
-# Atlas Industries — Corpus & Evaluation Bundle
+# Atlas Industries Enterprise Assistant
 
-This bundle is the dataset for the **Atlas Industries Enterprise Assistant** AI/ML graduation project (agentic RAG capstone). It contains the full document corpus and the gold evaluation cases.
+An internal, agentic RAG chatbot that answers employee questions about **HR**, **IT**, and **Finance** policies from Atlas Industries' own documents. It works in **English and Arabic**, cites the source files it used, remembers the conversation within a session, and can call small typed tools (policy lookup, reimbursement calculator, leave types). Every run is logged with a `run_id`, and the pipeline is evaluated with DeepEval.
 
-## Contents
+> Atlas Industries is a fictional company. This is the graduation project of the AI & Machine Learning Boot Camp (Atlas Industries, Agentic Internal Knowledge Chatbot).
+
+## Demo
+
+![Demo walkthrough](docs/demo.gif)
+
+| English question with sources | Arabic question (RTL) |
+|---|---|
+| ![English chat](docs/screenshot_english.png) | ![Arabic chat](docs/screenshot_arabic.png) |
+
+## Quick Start (5 commands)
+
+```bash
+git clone https://github.com/Mariam-abd-elhady/atlas-enterprise-assistant.git && cd atlas-enterprise-assistant
+python -m venv .venv && source .venv/bin/activate        # Windows: .venv\Scripts\activate
+pip install -r requirements.txt
+cp .env.example .env                                     # then set GOOGLE_API_KEY inside .env
+python -m src.ingest && chainlit run app.py
+```
+
+The first ingestion downloads the embedding model, so it can take a few minutes. The vector index is written to `index/` and is not committed; run `python -m scripts.reset` to wipe and rebuild it. On Windows, use the repository files directly instead of unzipping `atlas-corpus.zip`, to avoid problems with Arabic filenames.
+
+## How it works
+
+1. **Ingestion** reads the 30 documents (Markdown, PDF, DOCX; English, Arabic, bilingual), cleans them, splits them into chunks, embeds them with a multilingual model, and stores them in Chroma with `domain`, `source_filename`, and `language` metadata.
+2. **LangGraph workflow:** `load_memory -> route -> retrieve -> agent -> answer -> save_memory`. The router picks `hr`, `it`, or `finance`; below a confidence threshold the assistant asks the user to clarify instead of guessing. The agent (Gemini) can call up to 3 typed tools within a 10-step limit.
+3. **Answer** is written in the user's language and ends with the real source filenames; if nothing relevant is found it says so.
+
+![Architecture](docs/architecture.png)
+
+## Tech stack
+
+| Part | Choice |
+|---|---|
+| Orchestration | LangGraph / LangChain |
+| LLM | Gemini (`LLM_MODEL` in `src/settings.py`) |
+| Embeddings | `intfloat/multilingual-e5-small` (English and Arabic) |
+| Vector store | Chroma (local, persisted) |
+| UI | Chainlit |
+| Validation | Pydantic |
+| Evaluation | DeepEval, Gemini as judge |
+
+Models can be overridden without editing code: `LLM_MODEL=<model> JUDGE_MODEL=<model> python -m tests.evaluate`.
+
+## Evaluation results
+
+`python -m tests.evaluate` runs the 10 gold questions through the real workflow and writes `outputs/eval_report.json`. Latest run (`gemini-3.1-flash-lite` as assistant and judge; the default model hit its free-tier quota):
+
+| Metric | Score |
+|---|---|
+| Routing accuracy | 100% (10 of 10) |
+| Citation recall (expected files cited) | 95% |
+| Faithfulness | 0.93 |
+| Answer Relevancy | 0.93 |
+| Hallucination (1 = none) | 1.00 |
+| Contextual Precision | 0.82 |
+| Contextual Recall | 0.82 |
+
+A first run, before the router handled Arabic and several English terms, scored 40% routing accuracy. The scores above compare answers with the *retrieved context*; a manual check against the reference answers also found wrong or missing figures in two answers (hotel and taxi caps, international per diem) because retrieval did not bring the right passage. Details are in [`outputs/final_report.md`](outputs/final_report.md) and `notebooks/03_eval_walkthrough.ipynb`.
+
+```bash
+python -m tests.evaluate                  # full run
+python -m tests.evaluate --limit 2        # quick test on 2 cases
+python -m tests.evaluate --skip-metrics   # routing + citations only (no judge calls)
+```
+
+## Project structure
 
 ```
-data/docs/
-├── hr/        10 documents — vacation, sick leave, onboarding, remote work, etc.
-├── it/        10 documents — VPN, password reset, MFA, incident response, etc.
-└── finance/   10 documents — travel reimbursement, per diem, client dining, etc.
-
-tests/
-└── eval_cases.jsonl   10 gold test questions for DeepEval
+atlas-enterprise-assistant/
+├── README.md
+├── LICENSE
+├── requirements.txt
+├── .env.example
+├── .gitignore
+├── app.py                    # Chainlit chat UI
+├── CONTRACT.md               # work split and shared rules
+├── src/
+│   ├── settings.py           # paths, model names, thresholds
+│   ├── schemas.py            # shared types (Chunk, ToolCall, AgentState)
+│   ├── ingest.py             # load, clean, chunk, embed, index
+│   ├── embeddings.py
+│   ├── retriever.py          # domain-filtered retrieval
+│   ├── router.py             # question -> domain + confidence
+│   ├── graph.py              # LangGraph workflow, run_question()
+│   ├── memory.py             # session memory
+│   ├── prompts.py
+│   ├── tools.py              # typed tools
+│   └── logging_setup.py      # run_id and structured logs
+├── tests/
+│   ├── evaluate.py           # DeepEval evaluation
+│   └── eval_cases.jsonl      # 10 gold questions
+├── data/docs/{hr,it,finance}/  # 30 fictional documents
+├── outputs/
+│   ├── eval_report.json
+│   ├── run_logs.jsonl
+│   └── final_report.md
+├── notebooks/                # 01 EDA, 02 retrieval, 03 eval walkthrough
+├── docs/                     # architecture.png, demo.gif, screenshots
+└── scripts/reset.py          # wipe and rebuild the index
 ```
 
-## Corpus Profile
+## Code quality
 
-**30 total documents**, designed to stress every component of an agentic RAG pipeline.
+Format and lint before committing: `black .` and `ruff check .`. Settings live in `src/settings.py`; secrets live in `.env` (only `.env.example` is committed).
 
-### Language distribution
+## Known limitations
 
-- **English (60%)** — 18 documents
-- **Arabic (30%)** — 9 documents
-- **Bilingual EN+AR (10%)** — 3 documents
+- The router is keyword based (English and Arabic lists); a question without a known keyword cannot be routed, and the keyword lists partly overlap the evaluation questions, so the 100% routing score may be optimistic.
+- Retrieval can miss the passage that holds a specific figure (hotel and taxi caps, international per diem), and DeepEval scores cannot detect a wrong answer built on the wrong chunks.
+- Only 10 evaluation cases, and the same model family acted as assistant and judge, so scores are indicative, not statistically strong.
+- The free-tier Gemini quota limits how often the full evaluation can be run.
+- The tools were not triggered by any of the 10 gold questions, so tool use is not covered by the evaluation.
 
-### Format distribution
+## License
 
-- **Markdown (.md)** — 12 documents
-- **PDF (.pdf)** — 9 documents
-- **DOCX (.docx)** — 9 documents
-
-### Why this mix is hard
-
-Students must build an ingestion pipeline that:
-1. Loads three different formats (MD, PDF, DOCX), each with different text-extraction quirks.
-2. Handles Arabic text correctly — including right-to-left rendering, Unicode normalization, and tokenization for embeddings.
-3. Picks embeddings that work cross-lingually so an Arabic question can retrieve an Arabic document and an English question can retrieve an English document — and bilingual documents can match either.
-4. Preserves source filenames as metadata for citation, including filenames that contain Arabic characters.
-
-## Cross-references in the Corpus
-
-Documents reference each other by policy ID (e.g. HR-VAC-001 → HR-001-vacation-policy.md). Some test questions intentionally require synthesis across two or three documents — this is part of the difficulty.
-
-## Eval Cases Schema
-
-Each line in `tests/eval_cases.jsonl` is a JSON object with:
-
-| Field | Type | Description |
-|---|---|---|
-| `id` | string | Stable case ID (EVAL-001 to EVAL-010) |
-| `input` | string | The question, as a user would phrase it |
-| `expected_domain` | string | `hr`, `it`, or `finance` — used for routing accuracy |
-| `expected_output` | string | A reference answer (factually correct, paraphrased) |
-| `expected_sources` | array | Filenames whose content supports the answer |
-| `language` | string | `en` or `ar` |
-
-Questions span all three domains and both languages. Several require **multi-document retrieval** (different filenames in `expected_sources`).
-
-## Locked Facts
-
-These facts are explicitly stated in the corpus and are non-negotiable for grading:
-
-- New-hire vacation: 15 days/year, accrual 1.25 days/month after probation.
-- Probation period: 90 days.
-- Sick leave: 14 paid days/year, medical certificate required for 3+ days.
-- Remote work: max 3 days/week, not available during probation.
-- VPN: Cisco AnyConnect, server `vpn.atlas-industries.com`, port 443.
-- Password reset: `portal.atlas-industries.com/reset`, 24h cooldown.
-- MFA: Microsoft Authenticator only.
-- Software request SLA (< $500): 3 to 5 business days.
-- Domestic hotel cap: 1,500 EGP/night.
-- International hotel cap: 200 USD/night.
-- Airport taxi: 800 EGP per leg.
-- Client dinner: 2,000 EGP per person.
-- Per diem: 500 EGP domestic / 75 USD international.
-- Expense submission window: 30 days, hard deadline 60 days.
-
-If a student's system invents different numbers, that is a hallucination by the **Faithfulness** and **Hallucination** DeepEval metrics.
-
-## Folder Layout (Required)
-
-Place documents at exactly the paths shown above. Filenames must not be renamed — the eval cases reference them by filename for the citation check.
-
----
-
-Atlas Industries is a fictional company. Any resemblance to real companies, policies, or systems is coincidental.
+MIT, see [`LICENSE`](LICENSE).

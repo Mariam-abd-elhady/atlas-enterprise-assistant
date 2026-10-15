@@ -241,6 +241,8 @@ def route(
     if best_score > 0:
         
     margin = best_score - second_score
+        # خفض الثقة إذا كان هناك مجال آخر قريب في درجة التطابق.
+        margin = best_score - second_score
 
         confidence = min(
             0.99,
@@ -250,10 +252,12 @@ def route(
         )
 
     
+        # إبقاء الثقة ضمن الحدود المسموح بها في إعدادات المشروع.
         confidence = max(0.0, min(1.0, confidence))
 
         return best_domain, confidence
 
+    # استخدام آخر سؤال للمستخدم عند عدم وضوح السؤال الحالي.
     if history:
         for message in reversed(history):
             if not isinstance(message, dict):
@@ -276,4 +280,5 @@ def route(
             break
 
     
+    # لا توجد كلمات كافية لتحديد المجال.
     return "hr", 0.0

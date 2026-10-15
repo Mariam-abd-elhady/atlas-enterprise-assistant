@@ -1,4 +1,5 @@
 
+import os
 from pathlib import Path
 # Language detection thresholds (share of Arabic letters in the text)
 AR_RATIO_ENGLISH_MAX = 0.10   # below this -> English
@@ -16,8 +17,8 @@ DOMAINS = ["hr", "it", "finance"]
 LANGUAGES = ["en", "ar", "bilingual"]
 
 # Models (team decision)
-LLM_MODEL = "gemini-3.8-flash"
-JUDGE_MODEL = "gemini-3.8-flash"
+LLM_MODEL = os.getenv("LLM_MODEL", "gemini-3.8-flash")
+JUDGE_MODEL = os.getenv("JUDGE_MODEL", "gemini-3.8-flash")
 EMBEDDING_MODEL = "intfloat/multilingual-e5-small"
 COLLECTION_NAME = "atlas_docs"
 EMBED_BATCH_SIZE = 16
