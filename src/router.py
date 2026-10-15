@@ -239,6 +239,8 @@ def route(
     second_score = ranked[1][1]
 
     if best_score > 0:
+        
+    margin = best_score - second_score
         # خفض الثقة إذا كان هناك مجال آخر قريب في درجة التطابق.
         margin = best_score - second_score
 
@@ -249,6 +251,7 @@ def route(
             + 0.10 * margin,
         )
 
+    
         # إبقاء الثقة ضمن الحدود المسموح بها في إعدادات المشروع.
         confidence = max(0.0, min(1.0, confidence))
 
@@ -276,5 +279,6 @@ def route(
 
             break
 
+    
     # لا توجد كلمات كافية لتحديد المجال.
     return "hr", 0.0
