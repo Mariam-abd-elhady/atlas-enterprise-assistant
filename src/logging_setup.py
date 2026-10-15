@@ -1,11 +1,14 @@
 """Structured JSON logging. Owner: Person 3."""
+
 import json
-import os
 import uuid
 from datetime import datetime, timezone
 from pathlib import Path
 
-RUN_LOG_PATH = os.getenv("RUN_LOG_PATH", "outputs/run_log.jsonl")
+from src import settings
+
+# Prefer the shared value from settings.py (contract: no hard-coded values).
+RUN_LOG_PATH = getattr(settings, "RUN_LOG_PATH", "outputs/run_log.jsonl")
 
 
 def new_run_id() -> str:
@@ -13,21 +16,26 @@ def new_run_id() -> str:
     return str(uuid.uuid4())
 
 
-def chunk_metadata(chunk) -> dict:
-    """Return loggable info for a retrieved chunk (filename/IDs only, not full text).
-
-    Accepts a LangChain Document, an object with .metadata, or a plain dict.
-    """
+def _one_chunk(chunk) -> dict:
+    """Loggable summary of one chunk: filename/IDs only, never the full text."""
     if isinstance(chunk, dict):
-        meta = chunk.get("metadata", chunk)
+        get = chunk.get
     else:
-        meta = getattr(chunk, "metadata", {}) or {}
+
+        def get(key, default=None):
+            return getattr(chunk, key, default)
+
     return {
-        "source": meta.get("source") or meta.get("filename"),
-        "domain": meta.get("domain"),
-        "chunk_id": meta.get("chunk_id") or meta.get("id"),
-        "page": meta.get("page"),
+        "source_filename": get("source_filename"),
+        "chunk_id": get("chunk_id"),
+        "domain": get("domain"),
+        "score": get("score"),
     }
+
+
+def chunk_metadata(chunks) -> list[dict]:
+    """Return a list of loggable dicts for the retrieved chunks."""
+    return [_one_chunk(c) for c in (chunks or [])]
 
 
 def log_event(run_id: str, event: str, **data) -> None:
