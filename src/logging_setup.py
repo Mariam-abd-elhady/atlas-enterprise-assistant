@@ -2,7 +2,7 @@
 
 import json
 import uuid
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 from src import settings
@@ -41,7 +41,7 @@ def chunk_metadata(chunks) -> list[dict]:
 def log_event(run_id: str, event: str, **data) -> None:
     """Append one JSON line to RUN_LOG_PATH. Log filenames/chunk IDs, not full text."""
     record = {
-        "ts": datetime.now(timezone.utc).isoformat(),
+        "ts": datetime.now(UTC).isoformat(),
         "run_id": run_id,
         "event": event,
         **data,

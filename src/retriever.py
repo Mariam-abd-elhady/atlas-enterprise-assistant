@@ -1,4 +1,5 @@
 """Domain-filtered retrieval. Owner: Person 1."""
+
 from collections import Counter
 from functools import lru_cache
 
@@ -57,6 +58,7 @@ def retrieve(query: str, domain: str, k: int = TOP_K) -> list[Chunk]:
         if len(kept) == k:
             break
     return kept
+
 
 def retrieve_multi(queries: list[str], domain: str, k: int = TOP_K) -> list[Chunk]:
     """Search with several phrasings (e.g. the question and its translation).

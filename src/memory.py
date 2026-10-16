@@ -1,7 +1,6 @@
 """Session memory keyed by session_id."""
 
 import json
-from pathlib import Path
 from threading import RLock
 
 from src.settings import OUTPUTS_DIR
@@ -21,9 +20,7 @@ def _read_memory() -> dict:
         return data if isinstance(data, dict) else {}
     except (json.JSONDecodeError, OSError):
         # Do not silently overwrite a corrupted memory file.
-        raise RuntimeError(
-            f"Could not safely read session memory: {MEMORY_PATH}"
-        )
+        raise RuntimeError(f"Could not safely read session memory: {MEMORY_PATH}")
 
 
 def _write_memory(data: dict) -> None:
@@ -70,10 +67,12 @@ def save_turn(session_id: str, question: str, answer: str) -> None:
         data = _read_memory()
         history = data.setdefault(session_id, [])
 
-        history.extend([
-            {"role": "user", "content": question},
-            {"role": "assistant", "content": answer},
-        ])
+        history.extend(
+            [
+                {"role": "user", "content": question},
+                {"role": "assistant", "content": answer},
+            ]
+        )
 
         _write_memory(data)
 

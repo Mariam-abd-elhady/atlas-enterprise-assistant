@@ -1,4 +1,5 @@
 """Shared data types used by every module. Change only with team agreement."""
+
 from typing import Literal, TypedDict
 
 from pydantic import BaseModel
@@ -39,4 +40,3 @@ class AgentState(TypedDict, total=False):
     answer: str
     sources: list[str]
     step_count: int
-

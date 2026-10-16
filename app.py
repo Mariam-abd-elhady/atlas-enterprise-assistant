@@ -77,7 +77,7 @@ async def main(message: cl.Message):
             content="The agent graph is not connected yet (part 2)."
         ).send()
         return
-    except Exception as e:  # noqa: BLE001 - never show a stack trace to the user
+    except Exception as e:
         log_event(
             fallback_run_id, "ui_error", error=type(e).__name__, question=question
         )

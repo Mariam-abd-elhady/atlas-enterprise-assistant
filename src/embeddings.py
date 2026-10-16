@@ -1,4 +1,5 @@
 """Embedding model wrapper. Owner: Person 1."""
+
 from functools import lru_cache
 
 from sentence_transformers import SentenceTransformer

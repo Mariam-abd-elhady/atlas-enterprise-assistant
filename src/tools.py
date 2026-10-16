@@ -1,4 +1,3 @@
-
 """Typed tools for the Atlas Enterprise Assistant."""
 
 from decimal import Decimal, InvalidOperation
@@ -34,8 +33,6 @@ class ReimbursementInput(BaseModel):
 
 class ListLeaveTypesInput(BaseModel):
     """Input for retrieving available leave types."""
-
-    pass
 
 
 def _format_chunks(chunks: list, limit: int = TOP_K) -> str:
@@ -73,11 +70,7 @@ def _format_chunks(chunks: list, limit: int = TOP_K) -> str:
         domain = getattr(chunk, "domain", "unknown")
         content = getattr(chunk, "text", "")
 
-        parts.append(
-            f"Source: {source}\n"
-            f"Domain: {domain}\n"
-            f"Content:\n{content}"
-        )
+        parts.append(f"Source: {source}\n" f"Domain: {domain}\n" f"Content:\n{content}")
 
     return "\n\n---\n\n".join(parts)
 
@@ -134,10 +127,7 @@ def policy_lookup(args: PolicyLookupInput) -> str:
         reverse=True,
     )
 
-    return (
-        f"Policy search results for '{query}':\n\n"
-        f"{_format_chunks(found)}"
-    )
+    return f"Policy search results for '{query}':\n\n" f"{_format_chunks(found)}"
 
 
 def reimbursement_calculator(args: ReimbursementInput) -> str:
@@ -175,19 +165,14 @@ def reimbursement_calculator(args: ReimbursementInput) -> str:
         if isinstance(quantity_value, bool) or not isinstance(
             quantity_value, allowed_types
         ):
-            return (
-                f"VALIDATION_ERROR: Item {index} quantity must be numeric."
-            )
+            return f"VALIDATION_ERROR: Item {index} quantity must be numeric."
 
         try:
             amount = Decimal(str(amount_value))
             quantity = Decimal(str(quantity_value))
 
         except (InvalidOperation, ValueError):
-            return (
-                f"VALIDATION_ERROR: Item {index} amount or quantity "
-                "is invalid."
-            )
+            return f"VALIDATION_ERROR: Item {index} amount or quantity " "is invalid."
 
         if not amount.is_finite() or amount < 0:
             return (
@@ -212,10 +197,7 @@ def reimbursement_calculator(args: ReimbursementInput) -> str:
         currency_value = item.get("currency")
 
         if currency_value is not None:
-            if (
-                not isinstance(currency_value, str)
-                or not currency_value.strip()
-            ):
+            if not isinstance(currency_value, str) or not currency_value.strip():
                 return (
                     f"VALIDATION_ERROR: Item {index} currency must be "
                     "a non-empty string."
@@ -225,9 +207,7 @@ def reimbursement_calculator(args: ReimbursementInput) -> str:
 
         validated_items.append(
             {
-                "description": str(
-                    item.get("description") or f"Item {index}"
-                ),
+                "description": str(item.get("description") or f"Item {index}"),
                 "amount": amount,
                 "quantity": quantity,
                 "line_total": line_total,
@@ -243,20 +223,13 @@ def reimbursement_calculator(args: ReimbursementInput) -> str:
 
     total = sum(
         (item["line_total"] for item in validated_items),
-        Decimal("0"),
+        Decimal(0),
     )
 
     if not total.is_finite():
-        return (
-            "VALIDATION_ERROR: The total is outside the supported "
-            "numeric range."
-        )
+        return "VALIDATION_ERROR: The total is outside the supported " "numeric range."
 
-    currency_label = (
-        next(iter(currencies))
-        if currencies
-        else "currency unspecified"
-    )
+    currency_label = next(iter(currencies)) if currencies else "currency unspecified"
 
     lines = ["Reimbursement calculation:"]
 

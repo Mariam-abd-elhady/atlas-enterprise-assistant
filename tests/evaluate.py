@@ -116,21 +116,17 @@ class GeminiJudge(DeepEvalBaseLLM):
 
 def build_metrics(judge: GeminiJudge) -> dict:
     """Create the 5 DeepEval metrics."""
-    common = dict(model=judge, async_mode=False, include_reason=True)
+    common = {"model": judge, "async_mode": False, "include_reason": True}
     return {
         "faithfulness": FaithfulnessMetric(threshold=PASS_THRESHOLD, **common),
-        "answer_relevancy": AnswerRelevancyMetric(
-            threshold=PASS_THRESHOLD, **common
-        ),
+        "answer_relevancy": AnswerRelevancyMetric(threshold=PASS_THRESHOLD, **common),
         "hallucination": HallucinationMetric(
             threshold=HALLUCINATION_THRESHOLD, **common
         ),
         "contextual_precision": ContextualPrecisionMetric(
             threshold=PASS_THRESHOLD, **common
         ),
-        "contextual_recall": ContextualRecallMetric(
-            threshold=PASS_THRESHOLD, **common
-        ),
+        "contextual_recall": ContextualRecallMetric(threshold=PASS_THRESHOLD, **common),
     }
 
 
@@ -159,9 +155,7 @@ def _get(obj, field, default=""):
 
 def build_contexts(state: dict) -> list[str]:
     """Retrieved chunk texts + successful tool outputs = retrieval context."""
-    contexts = [
-        _get(chunk, "text") for chunk in state.get("retrieved_chunks", [])
-    ]
+    contexts = [_get(chunk, "text") for chunk in state.get("retrieved_chunks", [])]
     for call in state.get("tool_calls", []):
         output = str(_get(call, "output"))
         if output and not output.startswith(TOOL_ERROR_PREFIXES):
@@ -256,9 +250,7 @@ def evaluate_case(case: dict, metrics: dict | None) -> dict:
         "expected_domain": case["expected_domain"],
     }
     try:
-        state = ask_with_retry(
-            case["input"], f"eval-{case['id']}-{uuid4().hex[:8]}"
-        )
+        state = ask_with_retry(case["input"], f"eval-{case['id']}-{uuid4().hex[:8]}")
     except Exception as exc:
         record.update(
             error=f"{type(exc).__name__}: {exc}",
@@ -321,8 +313,7 @@ def summarize(results: list[dict]) -> dict:
         entries = [
             r["metrics"][name]
             for r in results
-            if name in r.get("metrics", {})
-            and r["metrics"][name]["score"] is not None
+            if name in r.get("metrics", {}) and r["metrics"][name]["score"] is not None
         ]
         if entries:
             summary["metrics"][name] = {
@@ -336,9 +327,7 @@ def summarize(results: list[dict]) -> dict:
         subset = [r for r in results if r.get("language") == lang]
         summary["by_language"][lang] = {
             "cases": len(subset),
-            "routing_accuracy": _mean(
-                [float(r["routing_correct"]) for r in subset]
-            ),
+            "routing_accuracy": _mean([float(r["routing_correct"]) for r in subset]),
             "citation_recall": _mean([r["citations"]["recall"] for r in subset]),
         }
     return summary
@@ -350,7 +339,7 @@ def print_report(results: list[dict], summary: dict) -> None:
     print("".join(f"{n[:9]:<11}" for n in METRIC_NAMES))
     print("-" * 78)
     for r in results:
-        row = f"{r['id']:<10}{str(r.get('language')):<6}"
+        row = f"{r['id']:<10}{r.get('language')!s:<6}"
         row += f"{'OK' if r['routing_correct'] else 'FAIL':<8}"
         row += f"{r['citations']['recall']:<8}"
         for name in METRIC_NAMES:

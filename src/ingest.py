@@ -1,21 +1,27 @@
 """Corpus ingestion and indexing. Owner: Person 1."""
+
 import re
+import shutil
 import unicodedata
 from pathlib import Path
-from langchain_text_splitters import RecursiveCharacterTextSplitter
-from src.settings import CHUNK_OVERLAP, CHUNK_SIZE
+
+import chromadb
 from docx import Document
 from docx.table import Table
 from docx.text.paragraph import Paragraph
+from langchain_text_splitters import RecursiveCharacterTextSplitter
 from pypdf import PdfReader
-import shutil
-import chromadb
+
 from src.embeddings import embed_documents
-from src.settings import COLLECTION_NAME, DOCS_DIR, INDEX_DIR
 from src.schemas import Chunk
 from src.settings import (
     AR_RATIO_ARABIC_MIN,
     AR_RATIO_ENGLISH_MAX,
+    CHUNK_OVERLAP,
+    CHUNK_SIZE,
+    COLLECTION_NAME,
+    DOCS_DIR,
+    INDEX_DIR,
     SUPPORTED_EXTENSIONS,
 )
 

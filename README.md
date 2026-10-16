@@ -1,121 +1,279 @@
 # Atlas Industries Enterprise Assistant
 
-An internal, agentic RAG chatbot that answers employee questions about **HR**, **IT**, and **Finance** policies from Atlas Industries' own documents. It works in **English and Arabic**, cites the source files it used, remembers the conversation within a session, and can call small typed tools (policy lookup, reimbursement calculator, leave types). Every run is logged with a `run_id`, and the pipeline is evaluated with DeepEval.
+An agentic AI-powered enterprise knowledge assistant that helps employees find reliable answers to internal **HR, IT, and Finance policies** using Retrieval-Augmented Generation (RAG).
 
-> Atlas Industries is a fictional company. This is the graduation project of the AI & Machine Learning Boot Camp (Atlas Industries, Agentic Internal Knowledge Chatbot).
+The assistant supports English and Arabic, retrieves relevant internal documents, provides source references, maintains conversation memory, and uses typed tools for selected policy-related tasks. Its workflow is orchestrated with LangGraph and evaluated using DeepEval.
+
+> **Project:** AI & Machine Learning Boot Camp Graduation Project  
+> **Organization:** Atlas Industries (fictional company)  
+> **Repository:** [Mariam-abd-elhady/atlas-enterprise-assistant](https://github.com/Mariam-abd-elhady/atlas-enterprise-assistant)
 
 ## Demo
 
-![Demo walkthrough](docs/demo.gif)
+The following animation demonstrates the application workflow.
 
-| English question with sources | Arabic question (RTL) |
+![Atlas Enterprise Assistant Demo](docs/demo.gif)
+
+## Features
+
+- **Bilingual assistance:** Handles employee questions in English and Arabic.
+- **Domain-aware routing:** Classifies questions into HR, IT, or Finance and requests clarification when confidence is insufficient.
+- **Retrieval-Augmented Generation:** Retrieves relevant passages from the internal document collection before generating answers.
+- **Source references:** Identifies the documents used to support answers.
+- **Session memory:** Maintains conversational context within a session.
+- **Typed tools:** Provides structured policy lookup, reimbursement calculation, and leave-type functionality.
+- **Observability:** Records execution information, including run IDs and structured logs.
+- **Evaluation:** Measures routing, citation coverage, faithfulness, answer relevancy, and retrieval-related metrics.
+
+## Tech Stack
+
+| Component | Technology |
 |---|---|
-| ![English chat](docs/screenshot_english.png) | ![Arabic chat](docs/screenshot_arabic.png) |
+| Language | Python |
+| LLM | Google Gemini API |
+| Workflow orchestration | LangGraph |
+| LLM integration | LangChain |
+| Embeddings | `intfloat/multilingual-e5-small` |
+| Vector database | ChromaDB |
+| User interface | Chainlit |
+| Data validation | Pydantic |
+| Evaluation | DeepEval |
+| Document formats | Markdown, PDF, DOCX |
 
-## Quick Start (5 commands)
+## Project Architecture
 
-```bash
-git clone https://github.com/Mariam-abd-elhady/atlas-enterprise-assistant.git && cd atlas-enterprise-assistant
-python -m venv .venv && source .venv/bin/activate        # Windows: .venv\Scripts\activate
-pip install -r requirements.txt
-cp .env.example .env                                     # then set GOOGLE_API_KEY inside .env
-python -m src.ingest && chainlit run app.py
+![Atlas Enterprise Assistant Architecture](docs/architecture.png)
+
+The application follows a retrieval-augmented, graph-based workflow:
+
+1. **Load memory:** Retrieves available conversation context.
+2. **Route:** Classifies the question into HR, IT, or Finance.
+3. **Retrieve:** Searches the relevant domain's indexed documents.
+4. **Agent:** Uses the retrieved context and available typed tools to formulate a response.
+5. **Answer:** Returns the response with source references.
+6. **Save memory:** Stores conversation information for subsequent turns.
+
+If the question cannot be routed confidently, the assistant can ask the user to clarify the intended domain rather than making an unsupported assumption.
+
+## Getting Started
+
+### Prerequisites
+
+Before running the project, ensure you have:
+
+- Python installed and available from PowerShell.
+- Git installed.
+- A Google Gemini API key.
+- An internet connection for initial dependency installation and embedding-model download.
+
+### 1. Clone the repository
+
+Open PowerShell and run:
+
+```powershell
+git clone https://github.com/Mariam-abd-elhady/atlas-enterprise-assistant.git
+cd atlas-enterprise-assistant
 ```
 
-The first ingestion downloads the embedding model, so it can take a few minutes. The vector index is written to `index/` and is not committed; run `python -m scripts.reset` to wipe and rebuild it. On Windows, use the repository files directly instead of unzipping `atlas-corpus.zip`, to avoid problems with Arabic filenames.
+### 2. Create and activate a virtual environment
 
-## How it works
+```powershell
+python -m venv .venv
+.\.venv\Scripts\Activate.ps1
+```
 
-1. **Ingestion** reads the 30 documents (Markdown, PDF, DOCX; English, Arabic, bilingual), cleans them, splits them into chunks, embeds them with a multilingual model, and stores them in Chroma with `domain`, `source_filename`, and `language` metadata.
-2. **LangGraph workflow:** `load_memory -> route -> retrieve -> agent -> answer -> save_memory`. The router picks `hr`, `it`, or `finance`; below a confidence threshold the assistant asks the user to clarify instead of guessing. The agent (Gemini) can call up to 3 typed tools within a 10-step limit.
-3. **Answer** is written in the user's language and ends with the real source filenames; if nothing relevant is found it says so.
+If PowerShell blocks script activation, you can run the environment's Python executable directly instead:
 
-![Architecture](docs/architecture.png)
+```powershell
+.\.venv\Scripts\python.exe -m pip install -r requirements.txt
+```
 
-## Tech stack
+### 3. Install dependencies
 
-| Part | Choice |
-|---|---|
-| Orchestration | LangGraph / LangChain |
-| LLM | Gemini (`LLM_MODEL` in `src/settings.py`) |
-| Embeddings | `intfloat/multilingual-e5-small` (English and Arabic) |
-| Vector store | Chroma (local, persisted) |
-| UI | Chainlit |
-| Validation | Pydantic |
-| Evaluation | DeepEval, Gemini as judge |
+With the virtual environment activated:
 
-Models can be overridden without editing code: `LLM_MODEL=<model> JUDGE_MODEL=<model> python -m tests.evaluate`.
+```powershell
+python -m pip install -r requirements.txt
+```
 
-## Evaluation results
+### 4. Configure environment variables
 
-`python -m tests.evaluate` runs the 10 gold questions through the real workflow and writes `outputs/eval_report.json`. Latest run (`gemini-3.1-flash-lite` as assistant and judge; the default model hit its free-tier quota):
+Create a local `.env` file from the example:
 
-| Metric | Score |
-|---|---|
-| Routing accuracy | 100% (10 of 10) |
-| Citation recall (expected files cited) | 95% |
+```powershell
+Copy-Item .env.example .env
+```
+
+Open `.env` and replace the placeholder with your own Gemini API key:
+
+```env
+GOOGLE_API_KEY=your_actual_api_key
+```
+
+Keep your real `.env` file private. Only `.env.example`, containing a placeholder, should be committed to GitHub.
+
+### 5. Build the document index
+
+Run:
+
+```powershell
+python -m src.ingest
+```
+
+The ingestion pipeline processes the provided corpus, prepares document chunks, generates embeddings, and stores them in the local Chroma index.
+
+The initial run may take several minutes because the embedding model needs to be downloaded. Subsequent runs can reuse locally cached model files.
+
+**Important:** Use the repository's existing `data/docs/` files. On Windows, avoid manually extracting the original corpus archive over these files, as Arabic filenames may cause problems.
+
+### 6. Launch the application
+
+```powershell
+chainlit run app.py
+```
+
+Open the local URL printed in the terminal, typically:
+
+`http://localhost:8000`
+
+You can now ask questions about internal HR, IT, and Finance policies in English or Arabic.
+
+## Evaluation
+
+The project includes a set of 10 reference questions in `tests/eval_cases.jsonl` and an evaluation script in `tests/evaluate.py`.
+
+### Run the full evaluation
+
+```powershell
+python -m tests.evaluate
+```
+
+The evaluation results are written to:
+
+`outputs/eval_report.json`
+
+The final analysis is documented in:
+
+`outputs/final_report.md`
+
+### Run a smaller evaluation
+
+Evaluate only two cases:
+
+```powershell
+python -m tests.evaluate --limit 2
+```
+
+Run routing and citation checks without the LLM judge metrics:
+
+```powershell
+python -m tests.evaluate --skip-metrics
+```
+
+The last results recorded in the project documentation were:
+
+| Metric | Reported result |
+|---|---:|
+| Routing accuracy | 100% |
+| Citation recall | 95% |
 | Faithfulness | 0.93 |
-| Answer Relevancy | 0.93 |
-| Hallucination (1 = none) | 1.00 |
-| Contextual Precision | 0.82 |
-| Contextual Recall | 0.82 |
+| Answer relevancy | 0.93 |
+| Hallucination score (1 = none) | 1.00 |
+| Contextual precision | 0.82 |
+| Contextual recall | 0.82 |
 
-A first run, before the router handled Arabic and several English terms, scored 40% routing accuracy. The scores above compare answers with the *retrieved context*; a manual check against the reference answers also found wrong or missing figures in two answers (hotel and taxi caps, international per diem) because retrieval did not bring the right passage. Details are in [`outputs/final_report.md`](outputs/final_report.md) and `notebooks/03_eval_walkthrough.ipynb`.
+These figures describe the recorded evaluation run; they should not be interpreted as a guarantee that every answer is correct.
 
-```bash
-python -m tests.evaluate                  # full run
-python -m tests.evaluate --limit 2        # quick test on 2 cases
-python -m tests.evaluate --skip-metrics   # routing + citations only (no judge calls)
-```
+### Evaluation limitations
 
-## Project structure
+- The evaluation contains only 10 reference questions.
+- The keyword-based router may perform differently on questions outside the evaluation set.
+- Retrieval can miss passages containing specific figures, such as reimbursement limits or per-diem rates.
+- LLM-based evaluation may not detect an incorrect answer when the retrieved context itself is incomplete or incorrect.
+- The same model family was used for answer generation and judging in the recorded run, which limits evaluation independence.
+- The provided evaluation questions did not exercise the available tools, so tool use requires separate testing.
+- Gemini API availability and free-tier quotas may affect evaluation runtime and completion.
 
-```
+See `outputs/final_report.md` and `notebooks/03_eval_walkthrough.ipynb` for the recorded results and further analysis.
+
+## Repository Structure
+
+```text
 atlas-enterprise-assistant/
 ├── README.md
 ├── LICENSE
 ├── requirements.txt
 ├── .env.example
 ├── .gitignore
-├── app.py                    # Chainlit chat UI
-├── CONTRACT.md               # work split and shared rules
+├── app.py
+├── CONTRACT.md
 ├── src/
-│   ├── settings.py           # paths, model names, thresholds
-│   ├── schemas.py            # shared types (Chunk, ToolCall, AgentState)
-│   ├── ingest.py             # load, clean, chunk, embed, index
-│   ├── embeddings.py
-│   ├── retriever.py          # domain-filtered retrieval
-│   ├── router.py             # question -> domain + confidence
-│   ├── graph.py              # LangGraph workflow, run_question()
-│   ├── memory.py             # session memory
+│   ├── __init__.py
+│   ├── settings.py
 │   ├── prompts.py
-│   ├── tools.py              # typed tools
-│   └── logging_setup.py      # run_id and structured logs
+│   ├── graph.py
+│   ├── router.py
+│   ├── retriever.py
+│   ├── memory.py
+│   ├── ingest.py
+│   ├── embeddings.py
+│   ├── schemas.py
+│   ├── tools.py
+│   └── logging_setup.py
 ├── tests/
-│   ├── evaluate.py           # DeepEval evaluation
-│   └── eval_cases.jsonl      # 10 gold questions
-├── data/docs/{hr,it,finance}/  # 30 fictional documents
+│   ├── __init__.py
+│   ├── evaluate.py
+│   └── eval_cases.jsonl
+├── data/
+│   └── docs/
+│       ├── hr/
+│       ├── it/
+│       └── finance/
 ├── outputs/
 │   ├── eval_report.json
 │   ├── run_logs.jsonl
 │   └── final_report.md
-├── notebooks/                # 01 EDA, 02 retrieval, 03 eval walkthrough
-├── docs/                     # architecture.png, demo.gif, screenshots
-└── scripts/reset.py          # wipe and rebuild the index
+├── notebooks/
+│   ├── 01_eda.ipynb
+│   ├── 02_retrieval.ipynb
+│   └── 03_eval_walkthrough.ipynb
+├── docs/
+│   ├── demo.gif
+│   ├── architecture.png
+│   └── corpus_readme.md
+└── scripts/
+    └── reset.py
 ```
 
-## Code quality
+The local `index/` directory contains the generated vector index. Follow the repository's `.gitignore` and project instructions when deciding whether generated index files should be included in version control.
 
-Format and lint before committing: `black .` and `ruff check .`. Settings live in `src/settings.py`; secrets live in `.env` (only `.env.example` is committed).
+## Maintenance
 
-## Known limitations
+### Rebuild the index
 
-- The router is keyword based (English and Arabic lists); a question without a known keyword cannot be routed, and the keyword lists partly overlap the evaluation questions, so the 100% routing score may be optimistic.
-- Retrieval can miss the passage that holds a specific figure (hotel and taxi caps, international per diem), and DeepEval scores cannot detect a wrong answer built on the wrong chunks.
-- Only 10 evaluation cases, and the same model family acted as assistant and judge, so scores are indicative, not statistically strong.
-- The free-tier Gemini quota limits how often the full evaluation can be run.
-- The tools were not triggered by any of the 10 gold questions, so tool use is not covered by the evaluation.
+The repository provides a reset script:
+
+```powershell
+python -m scripts.reset
+```
+
+Use this when you intentionally need to reset and rebuild the local index. Check the script before running it, because resetting can remove the existing index.
+
+### Code quality
+
+The repository includes Ruff configuration. If the corresponding tools are installed, run:
+
+```powershell
+ruff check .
+```
+
+## Security
+
+- Never commit `.env` or expose API keys in source code, notebooks, logs, or screenshots.
+- Keep `.env.example` limited to placeholder values.
+- Review generated logs and evaluation artifacts before publishing them.
+- Do not include private employee information in the fictional knowledge corpus or public demonstrations.
 
 ## License
 
-MIT, see [`LICENSE`](LICENSE).
+This project is distributed under the MIT License. See [LICENSE](LICENSE) for details.

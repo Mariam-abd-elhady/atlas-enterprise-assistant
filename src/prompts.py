@@ -1,4 +1,3 @@
-
 """Prompt templates. Owner: Person 2."""
 
 ROUTER_PROMPT = """

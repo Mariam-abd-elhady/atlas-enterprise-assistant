@@ -1,4 +1,3 @@
-
 """LangGraph workflow for the Atlas Enterprise Assistant."""
 
 import re
@@ -24,14 +23,11 @@ from src.settings import (
 )
 from src.tools import TOOLS
 
-
 VALID_DOMAINS = {"hr", "it", "finance"}
 
 TOOL_DESCRIPTIONS = {
     "policy_lookup": "Look up company policies by topic or policy ID.",
-    "reimbursement_calculator": (
-        "Calculate reimbursement totals from supplied items."
-    ),
+    "reimbursement_calculator": ("Calculate reimbursement totals from supplied items."),
     "list_leave_types": "List available employee leave types.",
 }
 
@@ -121,16 +117,12 @@ def _format_chunks(chunks) -> str:
     formatted = []
 
     for chunk in chunks:
-        filename = _chunk_value(
-            chunk, "source_filename", "Unknown source"
-        )
+        filename = _chunk_value(chunk, "source_filename", "Unknown source")
         domain = _chunk_value(chunk, "domain", "unknown")
         content = _chunk_value(chunk, "text", "")
 
         formatted.append(
-            f"Source: {filename}\n"
-            f"Domain: {domain}\n"
-            f"Content:\n{content}"
+            f"Source: {filename}\n" f"Domain: {domain}\n" f"Content:\n{content}"
         )
 
     return "\n\n---\n\n".join(formatted)
@@ -170,9 +162,7 @@ def _is_tool_error(result: str) -> bool:
 def build_graph():
     """Build and compile the enterprise assistant workflow."""
     if MAX_STEPS < 5:
-        raise ValueError(
-            "MAX_STEPS must be at least 5 for the configured workflow."
-        )
+        raise ValueError("MAX_STEPS must be at least 5 for the configured workflow.")
 
     if MAX_TOOL_CALLS < 0:
         raise ValueError("MAX_TOOL_CALLS cannot be negative.")
@@ -204,10 +194,7 @@ def build_graph():
             )
             confidence = float(confidence)
 
-            valid_confidence = (
-                isfinite(confidence)
-                and 0.0 <= confidence <= 1.0
-            )
+            valid_confidence = isfinite(confidence) and 0.0 <= confidence <= 1.0
 
             if (
                 domain not in VALID_DOMAINS
@@ -248,9 +235,7 @@ def build_graph():
         prompt = ANSWER_PROMPT.format(
             history=_format_history(history),
             context=_format_chunks(chunks),
-            tool_results=(
-                "Tool results will be provided in subsequent messages."
-            ),
+            tool_results=("Tool results will be provided in subsequent messages."),
             question=question,
         )
 
@@ -278,10 +263,7 @@ def build_graph():
 
             except Exception as exc:
                 # Keep technical details in server logs, not in user output.
-                print(
-                    "Language model request failed: "
-                    f"{type(exc).__name__}: {exc}"
-                )
+                print("Language model request failed: " f"{type(exc).__name__}: {exc}")
                 final_answer = (
                     "I could not complete the request because of a "
                     "language model error. Please try again."
@@ -327,9 +309,7 @@ def build_graph():
 
                     else:
                         try:
-                            result = tools_by_name[tool_name].invoke(
-                                tool_args
-                            )
+                            result = tools_by_name[tool_name].invoke(tool_args)
                             result_text = str(result)
 
                         except Exception as exc:
@@ -391,17 +371,11 @@ def build_graph():
         answer = (state.get("answer") or "").strip()
 
         # Collect source filenames from retrieved document chunks.
-        source_names = [
-            _chunk_value(chunk, "source_filename", "")
-            for chunk in chunks
-        ]
+        source_names = [_chunk_value(chunk, "source_filename", "") for chunk in chunks]
 
         # Include source filenames explicitly returned by policy lookup.
         for call in tool_calls:
-            if (
-                call.name != "policy_lookup"
-                or _is_tool_error(call.output)
-            ):
+            if call.name != "policy_lookup" or _is_tool_error(call.output):
                 continue
 
             for match in re.finditer(
@@ -411,11 +385,7 @@ def build_graph():
             ):
                 source_names.append(match.group(1).strip())
 
-        sources = list(
-            dict.fromkeys(
-                source for source in source_names if source
-            )
-        )
+        sources = list(dict.fromkeys(source for source in source_names if source))
 
         # A tool call alone is not proof that useful information was found.
         successful_tools = [
@@ -424,9 +394,7 @@ def build_graph():
             if (
                 not _is_tool_error(call.output)
                 and call.output.strip()
-                and not call.output.startswith(
-                    "This tool has already failed twice."
-                )
+                and not call.output.startswith("This tool has already failed twice.")
                 and "No relevant information found" not in call.output
                 and "No results found" not in call.output
             )

@@ -1,4 +1,5 @@
 """Wipe the index and rebuild it. Owner: Person 1."""
+
 import shutil
 
 from src.ingest import build_index

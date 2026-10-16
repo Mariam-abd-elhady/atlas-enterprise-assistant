@@ -1,9 +1,9 @@
-
 import os
 from pathlib import Path
+
 # Language detection thresholds (share of Arabic letters in the text)
-AR_RATIO_ENGLISH_MAX = 0.10   # below this -> English
-AR_RATIO_ARABIC_MIN = 0.70    # above this -> Arabic, in between -> bilingual
+AR_RATIO_ENGLISH_MAX = 0.10  # below this -> English
+AR_RATIO_ARABIC_MIN = 0.70  # above this -> Arabic, in between -> bilingual
 SUPPORTED_EXTENSIONS = {".md", ".pdf", ".docx"}
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -26,8 +26,8 @@ EMBED_BATCH_SIZE = 16
 CHUNK_SIZE = 800
 CHUNK_OVERLAP = 100
 TOP_K = 6
-CANDIDATE_MULTIPLIER = 5   # how many extra candidates to fetch before diversifying
-MAX_CHUNKS_PER_FILE = 2    # stops one document from filling every slot
+CANDIDATE_MULTIPLIER = 5  # how many extra candidates to fetch before diversifying
+MAX_CHUNKS_PER_FILE = 2  # stops one document from filling every slot
 ROUTER_CONFIDENCE_THRESHOLD = 0.6  # below this the router uses its fallback
 
 # Graph limits

@@ -3,5 +3,4 @@ __pycache__/
 .env
 index/
 chroma_db/
-outputs/run_logs.jsonl
 *.pyc
